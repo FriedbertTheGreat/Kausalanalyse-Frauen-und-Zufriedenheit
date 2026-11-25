@@ -1,0 +1,5 @@
+
+Stichprobenstatistik
+=================================
+Statistic N Mean St. Dev. Min Max
+=================================

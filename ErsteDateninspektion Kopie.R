@@ -48,7 +48,7 @@ View(shp_mp)
 table(as_factor(shplong_p_user$status))
 #proxy: 56580; grid only: 70295; individ. quest.: 226212
 
-table(fct_drop(as_factor(shplong_p_user$status)))
+table(fct_drop(as_factor(analysedaten$status)))
 table(shplong_p_user$status)
 shplong_p_user_1<-filter(shplong_p_user, status!=1) #Schliesst Personen ohne gültiges Interview aus, behält jedoch Proxy Interviews (vom SHP empfohlen)
 dim(shplong_p_user_1)
@@ -95,12 +95,12 @@ longfile_mit_geburtsjahr <- shplong_p_user_1 %>%
 ##Datensatz auf Stichprobe begrenzen##
 #----------------------------------------
 # Filter auf Geschlecht (2 = Frau) und Alter (25 bis 70 Jahre)
-shplong_p_user_1 <- shplong_p_user_1 %>%
+shplong_p_user_1 <- shplong_p_user %>%
   filter(sex == 2, 
          age >= 18 & age <= 45)
 
 #n Analysestichprobe
-shplong_p_stipro <- shplong_p_user_1 %>%
+shplong_p_stipro <- shplong_p_user %>%
   filter(status != 2,             # Gültiges Interview
          sex == 2,                   # Nur Frauen
          age >= 18 & age <= 45)    # Alter 18-45
@@ -131,7 +131,7 @@ geeignete_frauen <- longfile_mit_geburtsjahr %>%
 # Alle Long-File-Zeilen dieser Frauen behalten
 analysedaten <- longfile_mit_geburtsjahr %>%
   semi_join(geeignete_frauen, by = "idpers")
-nrow(analysedaten) #n = 1660?!
+nrow(analysedaten) #n = 1280?!
 
 
 #Für die Analyse relevante Variablen finden und inspizieren: 
@@ -185,14 +185,91 @@ analysedaten_2 <- analysedaten %>%
     pd161,
     pl01a,
     year,
-    pd81
+    pd81,
+    civsta
   )
 
 ##Item-Missings rekodieren##
 #------------------------------
 analysedaten_2<- replace_with_na_all(analysedaten_2, condition = ~.x%in% c(-8, -7, -6, -5, -4, -3, -2, -1)) #vorher auf analyserelevanten variablen beschränken!!
 summary(analysedaten_2)
-nrow(analysedaten_2)
+nrow(analysedaten_2) # n = 1280
+
+#Stichprobenstatistik
+dim(stichproben_variablen)
+
+sapply(stichproben_variablen, function(x) {
+  paste(class(x), collapse = ", ")
+})
+
+stichproben_num <- as.data.frame(
+  lapply(stichproben_variablen, haven::zap_labels)
+)
+
+stargazer(
+  stichproben_num,
+  type = "text",
+  title = "Stichprobenstatistik",
+  summary.stat = c("n", "mean", "sd", "min", "max"),
+  digits = 2,
+  out = "Stichprobenstatistik.txt"
+)
+sapply(stichproben_num, function(x) sum(is.finite(x)))
+stichproben_tabelle <- do.call(
+  rbind,
+  lapply(names(stichproben_num), function(variable) {
+    x <- stichproben_num[[variable]]
+    x <- x[is.finite(x)]
+    
+    data.frame(
+      Variable = variable,
+      N = length(x),
+      Mittelwert = if (length(x) > 0) mean(x) else NA,
+      SD = if (length(x) > 1) sd(x) else NA,
+      Minimum = if (length(x) > 0) min(x) else NA,
+      Maximum = if (length(x) > 0) max(x) else NA
+    )
+  })
+)
+
+print(stichproben_tabelle, row.names = FALSE)
+write.csv(stichproben_tabelle, "Stichprobenstatistik.csv", row.names = FALSE)
+
+#stichprobenstatistik BA
+###STICHPROBENSTATISTIK###
+#----------------------------
+table1(~pc44 + ownkid+age+edu_1_+iwyn+pd161+pl01a+pd81+idpers+ civsta + year+first_birth_year, data = analysedaten_2)
+#dies noch bisschen anhübschen -> hp gucken:)
+
+#Tabelle erstellen: 
+var_label(analysedaten_2$pc44)         <- "Lebenszufriedenheit (0-10)"
+var_label(analysedaten_2$ownkid) <- "Geburt erstes Kind"
+var_label(analysedaten_2$age)          <- "Alter (in Jahren)"
+var_label(analysedaten_2$edu_1_)       <- "Bildung"
+var_label(analysedaten_2$iwyn)       <- "Persönliches Nettoeinkommen"
+var_label(analysedaten_2$pd161)        <- "Migrationshintergrund"
+var_label(analysedaten_2$pl01a)       <- "Gesundheit"
+var_label(analysedaten_2$pd81)<- "Kinderwunsch"
+var_label(analysedaten_2$civsta)<-"Zivilstand"
+var_label(analysedaten_2$idpers)<- "Personen ID"
+var_label(analysedaten_2$year)<- "Erhebungswelle"
+var_label(analysedaten_2$first_birth_year) <-"öppis"
+
+# 2. Die Tabelle erstellen
+# 'topclass="RTable1-zebra"' macht sie im Export schöner (Zebrastreifen)
+t1 <- table1(~ pc44 + ownkid + age + edu_1_ + iwyn + pd161 + pl01a + pd81 + idpers + civsta + year + first_birth_year, 
+             data = analysedaten_2,
+             caption = "Tabelle 1: Deskriptive Statistik der Stichprobe (SHP)",
+             topclass = "RTable1-zebra")
+
+# 3. Anzeige im RStudio Viewer
+t1
+
+# 4. EXPORT für Word/Bachelorarbeit
+# Wir speichern die Tabelle als HTML-Datei. 
+# Diese kannst du einfach in Word öffnen und die Tabelle rüberkopieren.
+library(magrittr) # für den Pipe-Operator falls nötig
+write.table(t1, file="Stichprobenstatistik_KSA.html", quote = FALSE, row.names = FALSE)
 
 #Erstmal lineare Regression mit den Variablen rechnen, so wie se sind
 modell <- lm(
@@ -232,6 +309,7 @@ stargazer(
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("ser", "f"),
   out = "Regressionsergebnisse.txt")
+getw
 
 #Mal ohne age und year
 #modell <- lm(
@@ -247,3 +325,4 @@ stargazer(
 
 #well, ich glaube, ich muss hier mal noch paar sachen rekodieren. das ist aber future me's problem. good night
 #hallo hallo hallöchen
+# und wenn ich jetzt hier noch weiter "arbeite", sieht man das dann in GitHub?

@@ -3,7 +3,7 @@
     "path": "~/Documents/GitHub/Kausalanalyse-Frauen-und-Zufriedenheit/ErsteDateninspektion Kopie.R",
     "project_path": "ErsteDateninspektion Kopie.R",
     "type": "r_source",
-    "hash": "1876592899",
+    "hash": "672278971",
     "contents": "",
     "dirty": false,
     "created": 1795429870349.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "248,22",
-        "scrollLine": "223"
+        "cursorPosition": "277,1",
+        "scrollLine": "252"
     },
     "folds": "",
-    "lastKnownWriteTime": 1795429937,
+    "lastKnownWriteTime": 1795619985,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1795429937762,
+    "last_content_update": 1795619985317,
     "read_only": false,
     "read_only_alternatives": []
 }
